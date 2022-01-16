@@ -1,6 +1,9 @@
 package models
-
+import (
+	config "reportsicg/config"
+)
  
 func getStringConnection() string {
-	return "sqlserver://admin:nosenose@database-jamaca-test.cg3b6dgfv2ky.us-east-2.rds.amazonaws.com:1433?database=aroma"
+	var c = config.GetConf()
+	return c.Connection
 }

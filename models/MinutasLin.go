@@ -60,6 +60,29 @@ type MinutasLin struct {
 	Isprecio2 string
 }
 
+type MinutasHeader struct {
+	Mesa string `json:"mesa"`
+	Sala string `json:"sala"`
+	Codcliente string `json:"codcliente"`
+	Fecha string `json:"fecha"`
+	Totalbruto float64 `json:"totalbruto"`
+	Fechareal string `json:"fechareal"`
+	Seccion string `json:"seccion"`
+	Totalneto float64 `json:"totalneto"`
+}
+type Minutas struct {
+	Mesa string `json:"mesa"`
+	Sala string `json:"sala"`
+	Codcliente string `json:"codcliente"`
+	Fecha string `json:"fecha"`
+	Totalbruto float64 `json:"totalbruto"`
+	Fechareal string `json:"fechareal"`
+	Seccion string `json:"seccion"`
+	Totalneto float64 `json:"totalneto"`
+	Products []ProductsDetail `json:"products"`
+}
+
+
 
 func Guest(date1, date2 string) float64 {
 	dsn := getStringConnection()
@@ -83,3 +106,43 @@ func Guest(date1, date2 string) float64 {
 	return total
 }
 
+
+func OpenTransactions() []MinutasHeader {
+	dsn := getStringConnection()
+	var query = `
+		SELECT DISTINCT minutascab.mesa, minutascab.sala, minutaslin.precioiva as Totalbruto, minutascab.codcliente, minutascab.numero, minutascab.serie,
+		minutascab.fechaini as fecha, minutaslin.precio as Totalneto
+		FROM dbo.minutascab
+		JOIN dbo.minutaslin ON minutaslin.sala = minutascab.sala AND minutaslin.mesa = minutascab.mesa AND minutaslin.codcliente = minutascab.codcliente
+	`
+	db, err := gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
+	fmt.Println(err)
+	var minutas []MinutasHeader
+	db.Raw(query).Scan(&minutas)
+	return minutas
+}
+
+func DetailOpenTransaction(mesa, sala, codcliente string) Minutas {
+	dsn := getStringConnection()
+	var query = `
+		SELECT DISTINCT minutascab.mesa, minutascab.sala, minutaslin.precioiva as Totalbruto, minutascab.codcliente, minutascab.numero, minutascab.serie,
+		minutascab.fechaini as fecha, minutaslin.precio as Totalneto
+		FROM dbo.minutascab
+		JOIN dbo.minutaslin ON minutaslin.sala = minutascab.sala AND minutaslin.mesa = minutascab.mesa AND minutaslin.codcliente = minutascab.codcliente
+		WHERE minutascab.mesa = @mesa AND minutascab.sala = @sala AND minutascab.codcliente = @codcliente
+	`
+	
+	db, err := gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
+	fmt.Println(err)
+	var minutas Minutas
+	db.Raw(query, map[string]interface{}{"mesa": mesa, "sala": sala, "codcliente": codcliente}).Scan(&minutas)
+	query = `
+		SELECT  codarticulo, descripcion, vendedores.nombrecorto as vendedor, hora, unidades as cantidad,
+		precioiva as monto
+		FROM dbo.minutaslin
+		JOIN dbo.vendedores ON vendedores.codvendedor = minutaslin.codvendedor
+		WHERE minutaslin.sala = @sala AND minutaslin.mesa = @mesa AND minutaslin.codcliente = @codcliente
+	`
+	db.Raw(query, map[string]interface{}{"mesa": mesa, "sala": sala, "codcliente": codcliente}).Scan(&minutas.Products)
+	return minutas
+}
