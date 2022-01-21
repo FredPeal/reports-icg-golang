@@ -24,7 +24,7 @@ func Resume(c *gin.Context) {
 	response.OpenTables = model.OpenTables()
 	response.Guest = model.Guest(date1, date2)
 	response.CloseTables = model.CloseTables(date1, date2)
-	response.Cancellations = model.CloseTables(date1, date2)
+	response.Cancellations = model.Cancellations(date1, date2)
 	response.PaymentsMethods = model.MethodPaymentsResume(date1, date2)
 	response.GuestProducts = model.GuestProducts(date1, date2)
 	c.JSON(200, gin.H{

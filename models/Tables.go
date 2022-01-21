@@ -37,7 +37,7 @@ func Cancellations(date1,date2 string) float64 {
 	var query = `
 		SELECT SUM(precioiva)
 		FROM dbo.registroauditoria
-		WHERE convert(varchar, fecha,23) BETWEEN @date AND @date2
+		WHERE convert(varchar, fecha,23) BETWEEN @date1 AND @date2
 		AND tipo = 0
 	`
 	var total float64

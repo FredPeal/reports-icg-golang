@@ -83,6 +83,7 @@ func GetTransaction(numero string, serie string) DetailTransaction {
 		Totaliva float64 `json:"totaliva"`
 		Sala string `json:"sala"`
 		Ncf string `json:"ncf"`
+		Seccion string `json:"seccion"`
 	}
 
 	// Header Query
