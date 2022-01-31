@@ -4,6 +4,7 @@ import (
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"fmt"
+	"strings"
 )
 type Transaction struct {
 	Serie string `json:"serie"`
@@ -42,6 +43,7 @@ type ProductsDetail struct {
 	Hora string `json:"hora"`
 	Cantidad float64 `json:"cantidad"`
 	Monto float64 `json:"monto"`
+	Fecha string `json:"fecha"`
 }
 
 type TicketsPaid struct {
@@ -49,7 +51,7 @@ type TicketsPaid struct {
 	Importe float64 `json:"importe"`
 }
 
-func GetTransactions(date1 string,date2 string) []Transaction {
+func GetTransactions(date1 string,date2, caja string) []Transaction {
 	dsn := getStringConnection()
 	var query string = `
 			SELECT tiquetscab.serie, tiquetscab.numero, tiquetscab.mesa,
@@ -58,11 +60,12 @@ func GetTransactions(date1 string,date2 string) []Transaction {
 			FROM dbo.tiquetscab 
 			JOIN dbo.vendedores ON dbo.tiquetscab.codvendedor = dbo.vendedores.codvendedor
 			WHERE convert(varchar, tiquetscab.fecha,23) BETWEEN @date1 AND @date2
-			AND tiquetscab.N = 'B'
+			AND tiquetscab.N = 'B' AND tiquetscab.caja IN @caja
 		`
 		var res []Transaction
 		db, err := gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
-		db.Raw(query, map[string]interface{}{"date1": date1, "date2": date2}).Scan(&res)
+		cajas := strings.Split(caja, ",")
+		db.Raw(query, map[string]interface{}{"date1": date1, "date2": date2, "caja": cajas}).Scan(&res)
 		fmt.Println("Error getTransaction: ", err)
 		return res
 }
@@ -106,7 +109,7 @@ func GetTransaction(numero string, serie string) DetailTransaction {
 	// Detail Query
 	var Details []ProductsDetail
 	var queryDetail string = `
-		SELECT codarticulo, descripcion, vendedores.nombrecorto as vendedor, hora, unidades as cantidad, precioiva as monto
+		SELECT codarticulo, descripcion, vendedores.nombrecorto as vendedor, hora, unidades as cantidad, precioiva as monto, hora as fecha
 		FROM dbo.tiquetslin
 		JOIN dbo.vendedores ON tiquetslin.codvendedor = vendedores.codvendedor
 		WHERE tiquetslin.numero = @numero AND tiquetslin.serie = @serie

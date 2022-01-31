@@ -12,6 +12,8 @@ type CancellationsProducts struct {
 	Vendedor string `json:"vendedor"`
 	Fecha string `json:"fecha"`
 	Hora string `json:"hora"`
+	Sala string `json:"sala"`
+	Mesa string `json:"mesa"`
 }
 
 func TransactionsCancelled(date1 string, date2 string) []CancellationsProducts {
@@ -21,9 +23,10 @@ func TransactionsCancelled(date1 string, date2 string) []CancellationsProducts {
 	query := `
 		SELECT registroauditoria.descripcion, registroauditoria.uds as cantidad, 
 		registroauditoria.precioiva as monto, vendedores.nombrecorto as vendedor,
-		registroauditoria.fecha, registroauditoria.hora
+		registroauditoria.fecha, registroauditoria.hora, salas.nombre as sala, mesa
 		FROM dbo.registroauditoria
 		JOIN dbo.vendedores as vendedores ON vendedores.codvendedor = registroauditoria.codempleado
+		JOIN dbo.salas as salas ON salas.sala = registroauditoria.sala
 		WHERE convert(varchar, registroauditoria.fecha,23) BETWEEN @date1 AND @date2
 		AND tipo = 0
 	`

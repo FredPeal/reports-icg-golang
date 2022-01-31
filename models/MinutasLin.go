@@ -3,6 +3,7 @@ import (
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"fmt"
+	"strings"
 )
 type MinutasLin struct {
 	Sala int
@@ -83,8 +84,7 @@ type Minutas struct {
 }
 
 
-
-func Guest(date1, date2 string) float64 {
+func Guest(date1, date2, caja string) float64 {
 	dsn := getStringConnection()
 	var query = `
 	SELECT SUM(preciosventa.valor) as total
@@ -92,7 +92,7 @@ func Guest(date1, date2 string) float64 {
 	JOIN dbo.tiquetscab as tiquetscab ON tiquetscab.serie = tiqueslin.serie AND tiquetscab.numero = tiqueslin.numero
 	JOIN dbo.preciosventa as preciosventa ON preciosventa.codarticulo = tiqueslin.codarticulo AND preciosventa.idtarifav = tiqueslin.codtarifa
 	WHERE tiqueslin.tipo = 'I' AND convert(varchar, fecha,23) BETWEEN @date1 AND @date2
-	
+	AND tiquetscab.caja IN @caja
 	UNION 
 	
 	SELECT SUM(preciosventa.valor) as total
@@ -102,7 +102,9 @@ func Guest(date1, date2 string) float64 {
 	db, err := gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
 	fmt.Println(err)
 	var total float64
-	db.Raw(query, map[string]interface{}{"date1": date1, "date2": date2}).Scan(&total)
+	cajas := strings.Split(caja, ",")
+
+	db.Raw(query, map[string]interface{}{"date1": date1, "date2": date2, "caja": cajas}).Scan(&total)
 	return total
 }
 
@@ -137,7 +139,7 @@ func DetailOpenTransaction(mesa, sala, codcliente string) Minutas {
 	var minutas Minutas
 	db.Raw(query, map[string]interface{}{"mesa": mesa, "sala": sala, "codcliente": codcliente}).Scan(&minutas)
 	query = `
-		SELECT  codarticulo, descripcion, vendedores.nombrecorto as vendedor, hora, unidades as cantidad,
+		SELECT  codarticulo, descripcion, vendedores.nombrecorto as vendedor, hora, unidades as cantidad, minutaslin.hora as fecha,
 		precioiva as monto
 		FROM dbo.minutaslin
 		JOIN dbo.vendedores ON vendedores.codvendedor = minutaslin.codvendedor

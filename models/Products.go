@@ -2,7 +2,7 @@ package models
 
 import (
 	"fmt"
-
+	"strings"
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 )
@@ -27,7 +27,7 @@ type ProductsGuest struct {
 
 }
 
-func ResumeProducts(date1, date2 string) []ProductsResume {
+func ResumeProducts(date1, date2, caja string) []ProductsResume {
 	dsn := getStringConnection()
 	var query string = `
 			SELECT SUM(minutas.unidades) as cantidad, minutas.descripcion, secciones.descripcion as categoria,  SUM(minutas.precioiva) as precio
@@ -44,17 +44,18 @@ func ResumeProducts(date1, date2 string) []ProductsResume {
 			JOIN dbo.TIQUETSLIN as tiqueslin ON tiqueslin.codarticulo = products.codarticulo
 			JOIN dbo.secciones as secciones ON products.seccion = secciones.seccion
 			JOIN dbo.tiquetscab as tiquetscab ON tiquetscab.serie = tiqueslin.serie AND tiquetscab.numero = tiqueslin.numero
-			WHERE tiqueslin.tipo = 'V' AND convert(varchar, fecha,23) BETWEEN @date1 AND @date2
+			WHERE tiqueslin.tipo = 'V' AND convert(varchar, fecha,23) BETWEEN @date1 AND @date2 AND tiquetscab.caja IN @caja
 			GROUP BY tiqueslin.descripcion, secciones.descripcion
 	`
 	var products []ProductsResume
+	cajas := strings.Split(caja, ",")
 	db, err := gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
-	db.Raw(query, map[string]interface{}{"date1": date1, "date2": date2}).Scan(&products)
+	db.Raw(query, map[string]interface{}{"date1": date1, "date2": date2, "caja": cajas}).Scan(&products)
 	fmt.Println(err)
 	return products
 }
 
-func GuestProducts(date1, date2 string) []ProductsGuest {
+func GuestProducts(date1, date2, caja string) []ProductsGuest {
 	dsn := getStringConnection()
 	var query string = `
 		SELECT SUM(minutas.unidades) as cantidad, minutas.descripcion as descripcion, SUM(minutas.precioiva) as precioiva, SUM(minutas.precio) as precio,
@@ -78,12 +79,13 @@ func GuestProducts(date1, date2 string) []ProductsGuest {
 		INNER JOIN dbo.tiquetscab as tiquetscab ON tiquetscab.serie = tiqueslin.serie AND tiquetscab.numero = tiqueslin.numero
 		INNER JOIN dbo.preciosventa AS precios ON precios.codarticulo = tiqueslin.codarticulo AND precios.idtarifav = tiqueslin.codtarifa
 		INNER JOIN dbo.secciones as secciones ON secciones.seccion = products.seccion
-		WHERE tiqueslin.tipo = 'I' AND convert(varchar, fecha,23) BETWEEN @date1 AND @date2
+		WHERE tiqueslin.tipo = 'I' AND convert(varchar, fecha,23) BETWEEN @date1 AND @date2  AND tiquetscab.caja IN @caja
 		GROUP BY tiqueslin.DESCRIPCION, secciones.DESCRIPCION, tiqueslin.TIPO, precios.VALOR, vendedores.NOMBRECORTO, tiqueslin.HORA
 	`
 	var products []ProductsGuest
 	db, err := gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
-	db.Raw(query, map[string]interface{}{"date1": date1, "date2": date2}).Scan(&products)
+	cajas := strings.Split(caja, ",")
+	db.Raw(query, map[string]interface{}{"date1": date1, "date2": date2, "caja": cajas}).Scan(&products)
 	fmt.Println(err)
 	return products
 }

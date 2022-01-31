@@ -20,6 +20,7 @@ func main() {
 			"message": "pong",
 		})
 	})
+	router.GET("/reports/cajas", controllers.Cajas)
 	router.GET("/reports/home", controllers.Resume)
 	router.GET("/reports/transacts", controllers.GetAllTransacts)
 	router.GET("/reports/transacts/:numero/:serie", controllers.GetTransaction)

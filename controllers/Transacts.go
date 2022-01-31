@@ -9,7 +9,9 @@ import (
 func GetAllTransacts(c *gin.Context) {
 	var date1 string = c.Query("fromDate")
 	var date2 string = c.Query("toDate")
-	var response = model.GetTransactions(date1, date2)
+	var caja string = c.Query("caja")
+
+	var response = model.GetTransactions(date1, date2, caja)
 	c.JSON(200, gin.H{
 		"status": "success",
 		"data": response,

@@ -3,6 +3,7 @@ import (
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"fmt"
+	"strings"
 )
 
 func OpenTables() float64 {
@@ -15,18 +16,20 @@ func OpenTables() float64 {
 	return total
 }
 
-func CloseTables(date1,date2 string) float64 {
+func CloseTables(date1,date2, caja string) float64 {
 	dsn := getStringConnection()
 	var query = `
 		SELECT SUM(totalneto)
 		FROM dbo.tiquetscab 
 		WHERE convert(varchar, fecha,23) BETWEEN @date1 AND @date2
 		AND N = 'B'
+		AND caja IN @caja
 	`
 	var total float64
 	db, err := gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
 	fmt.Println(err)
-	db.Raw(query, map[string]interface{}{"date1": date1, "date2": date2}).Scan(&total)
+	cajas := strings.Split(caja, ",")
+	db.Raw(query, map[string]interface{}{"date1": date1, "date2": date2, "caja": cajas}).Scan(&total)
 	return total
 }
 
