@@ -70,6 +70,7 @@ type MinutasHeader struct {
 	Fechareal string `json:"fechareal"`
 	Seccion string `json:"seccion"`
 	Totalneto float64 `json:"totalneto"`
+	Numero string `json:"numero"`
 }
 type Minutas struct {
 	Mesa string `json:"mesa"`
@@ -112,10 +113,11 @@ func Guest(date1, date2, caja string) float64 {
 func OpenTransactions() []MinutasHeader {
 	dsn := getStringConnection()
 	var query = `
-		SELECT DISTINCT minutascab.mesa, minutascab.sala, minutaslin.precioiva as Totalbruto, minutascab.codcliente, minutascab.numero, minutascab.serie,
-		minutascab.fechaini as fecha, minutaslin.precio as Totalneto
+		SELECT DISTINCT minutascab.mesa, minutascab.sala, minutascab.codcliente, minutascab.numero, minutascab.serie,
+		minutascab.fechaini as fecha, SUM(minutaslin.precio) as Totalneto,SUM(minutaslin.precioiva) as Totalbruto
 		FROM dbo.minutascab
 		JOIN dbo.minutaslin ON minutaslin.sala = minutascab.sala AND minutaslin.mesa = minutascab.mesa AND minutaslin.codcliente = minutascab.codcliente
+		GROUP BY minutascab.mesa, minutascab.sala, minutascab.codcliente, minutascab.numero, minutascab.serie, minutascab.fechaini
 	`
 	db, err := gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
 	fmt.Println(err)
@@ -124,20 +126,21 @@ func OpenTransactions() []MinutasHeader {
 	return minutas
 }
 
-func DetailOpenTransaction(mesa, sala, codcliente string) Minutas {
+func DetailOpenTransaction(mesa, sala, codcliente, numero string) Minutas {
 	dsn := getStringConnection()
 	var query = `
-		SELECT DISTINCT minutascab.mesa, minutascab.sala, minutaslin.precioiva as Totalbruto, minutascab.codcliente, minutascab.numero, minutascab.serie,
-		minutascab.fechaini as fecha, minutaslin.precio as Totalneto
+		SELECT DISTINCT minutascab.mesa, minutascab.sala, minutascab.codcliente, minutascab.numero, minutascab.serie,
+		minutascab.fechaini as fecha, SUM(minutaslin.precio) as Totalneto, SUM(minutaslin.precioiva) as Totalbruto
 		FROM dbo.minutascab
 		JOIN dbo.minutaslin ON minutaslin.sala = minutascab.sala AND minutaslin.mesa = minutascab.mesa AND minutaslin.codcliente = minutascab.codcliente
-		WHERE minutascab.mesa = @mesa AND minutascab.sala = @sala AND minutascab.codcliente = @codcliente
+		WHERE minutascab.mesa = @mesa AND minutascab.sala = @sala AND minutascab.codcliente = @codcliente AND minutascab.numero = @numero
+		GROUP BY minutascab.mesa, minutascab.sala, minutascab.codcliente, minutascab.numero, minutascab.serie, minutascab.fechaini
 	`
 	
 	db, err := gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
 	fmt.Println(err)
 	var minutas Minutas
-	db.Raw(query, map[string]interface{}{"mesa": mesa, "sala": sala, "codcliente": codcliente}).Scan(&minutas)
+	db.Raw(query, map[string]interface{}{"mesa": mesa, "sala": sala, "codcliente": codcliente, "numero": numero}).Scan(&minutas)
 	query = `
 		SELECT  codarticulo, descripcion, vendedores.nombrecorto as vendedor, hora, unidades as cantidad, minutaslin.hora as fecha,
 		precioiva as monto
@@ -145,6 +148,6 @@ func DetailOpenTransaction(mesa, sala, codcliente string) Minutas {
 		JOIN dbo.vendedores ON vendedores.codvendedor = minutaslin.codvendedor
 		WHERE minutaslin.sala = @sala AND minutaslin.mesa = @mesa AND minutaslin.codcliente = @codcliente
 	`
-	db.Raw(query, map[string]interface{}{"mesa": mesa, "sala": sala, "codcliente": codcliente}).Scan(&minutas.Products)
+	db.Raw(query, map[string]interface{}{"mesa": mesa, "sala": sala, "codcliente": codcliente, "numero": numero}).Scan(&minutas.Products)
 	return minutas
 }

@@ -50,7 +50,8 @@ func GetDetailsOpenTransactions(c *gin.Context) {
 	var mesa string = c.Query("mesa")
 	var sala string = c.Query("sala")
 	var cliente string = c.Query("cliente")
-	var response = model.DetailOpenTransaction(mesa, sala, cliente)
+	var numero string = c.Query("numero")
+	var response = model.DetailOpenTransaction(mesa, sala, cliente, numero)
 	c.JSON(200, gin.H{
 		"status": "success",
 		"data": response,

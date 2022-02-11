@@ -8,7 +8,7 @@ import (
 )
 
 type ProductsResume struct {
-	Cantidad    int
+	Cantidad    float64
 	Descripcion string
 	Categoria   string
 	Precio      float64
